@@ -52,6 +52,10 @@ spgvalidate(Oid opclassoid)
 	OpFamilyOpFuncGroup *opclassgroup;
 	int			i;
 	ListCell   *lc;
+	spgConfigIn	configIn;
+	spgConfigOut configOut;
+	Oid			configOutLefttype = InvalidOid;
+	Oid			configOutRighttype = InvalidOid;
 
 	/* Fetch opclass information */
 	classtup = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclassoid));
@@ -100,6 +104,15 @@ spgvalidate(Oid opclassoid)
 		switch (procform->amprocnum)
 		{
 			case SPGIST_CONFIG_PROC:
+				ok = check_amproc_signature(procform->amproc, VOIDOID, true,
+											2, 2, INTERNALOID, INTERNALOID);
+				configIn.attType = procform->amproclefttype;
+				OidFunctionCall2(procform->amproc,
+								 PointerGetDatum(&configIn),
+								 PointerGetDatum(&configOut));
+				configOutLefttype = procform->amproclefttype;
+				configOutRighttype = procform->amprocrighttype;
+				break;
 			case SPGIST_CHOOSE_PROC:
 			case SPGIST_PICKSPLIT_PROC:
 			case SPGIST_INNER_CONSISTENT_PROC:
@@ -109,6 +122,15 @@ spgvalidate(Oid opclassoid)
 			case SPGIST_LEAF_CONSISTENT_PROC:
 				ok = check_amproc_signature(procform->amproc, BOOLOID, true,
 											2, 2, INTERNALOID, INTERNALOID);
+				break;
+			case SPGIST_COMPRESS_PROC:
+				if (configOutLefttype != procform->amproclefttype ||
+					configOutRighttype != procform->amprocrighttype)
+					ok = false;
+				else
+					ok = check_amproc_signature(procform->amproc,
+												configOut.leafType, true,
+												1, 1, procform->amproclefttype);
 				break;
 			default:
 				ereport(INFO,
@@ -212,7 +234,7 @@ spgvalidate(Oid opclassoid)
 		if (thisgroup->lefttype != thisgroup->righttype)
 			continue;
 
-		for (i = 1; i <= SPGISTNProc; i++)
+		for (i = 1; i <= SPGISTNRequiredProc; i++)
 		{
 			if ((thisgroup->functionset & (((uint64) 1) << i)) != 0)
 				continue;		/* got it */
