@@ -4354,7 +4354,7 @@ RelationGetIndexList(Relation relation)
 	Oid			oidIndex = InvalidOid;
 	Oid			pkeyIndex = InvalidOid;
 	Oid			candidateIndex = InvalidOid;
-    Oid			clusteredIndex = InvalidOid;
+	Oid			clusteredIndex = InvalidOid;
 	MemoryContext oldcxt;
 
 	/* Quick exit if we already computed the list. */
@@ -4431,9 +4431,9 @@ RelationGetIndexList(Relation relation)
 		if (index->indisprimary)
 			pkeyIndex = index->indexrelid;
 
-        /* remember clustered index if any */
-        if (index->indisclustered)
-            clusteredIndex = index->indexrelid;
+		/* remember clustered index if any */
+		if (index->indisclustered)
+			clusteredIndex = index->indexrelid;
 
 		/* remember explicitly chosen replica index */
 		if (index->indisreplident)
@@ -4450,6 +4450,7 @@ RelationGetIndexList(Relation relation)
 	relation->rd_indexlist = list_copy(result);
 	relation->rd_oidindex = oidIndex;
 	relation->rd_pkindex = pkeyIndex;
+	relation->rd_clusteredindex = clusteredIndex;
 	if (replident == REPLICA_IDENTITY_DEFAULT && OidIsValid(pkeyIndex))
 		relation->rd_replidindex = pkeyIndex;
 	else if (replident == REPLICA_IDENTITY_INDEX && OidIsValid(candidateIndex))
@@ -4681,17 +4682,17 @@ RelationGetPrimaryKeyIndex(Relation relation)
 Oid
 RelationGetClusteredIndex(Relation relation)
 {
-    List	   *ilist;
+	List	   *ilist;
 
-    if (relation->rd_indexvalid == 0)
-    {
-        /* RelationGetIndexList does the heavy lifting. */
-        ilist = RelationGetIndexList(relation);
-        list_free(ilist);
-        Assert(relation->rd_indexvalid != 0);
-    }
+	if (relation->rd_indexvalid == 0)
+	{
+		/* RelationGetIndexList does the heavy lifting. */
+		ilist = RelationGetIndexList(relation);
+		list_free(ilist);
+		Assert(relation->rd_indexvalid != 0);
+	}
 
-    return relation->rd_clusteredindex;
+	return relation->rd_clusteredindex;
 }
 
 /*
