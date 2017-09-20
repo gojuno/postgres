@@ -1115,12 +1115,7 @@ gist_circle_compress(PG_FUNCTION_ARGS)
 		CIRCLE	   *in = DatumGetCircleP(entry->key);
 		BOX		   *r;
 
-		r = (BOX *) palloc(sizeof(BOX));
-		r->high.x = in->center.x + in->radius;
-		r->low.x = in->center.x - in->radius;
-		r->high.y = in->center.y + in->radius;
-		r->low.y = in->center.y - in->radius;
-
+		r = circle_bbox(in);
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(r),
 					  entry->rel, entry->page,

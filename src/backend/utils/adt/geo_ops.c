@@ -41,7 +41,6 @@ enum path_delim
 static int	point_inside(Point *p, int npts, Point *plist);
 static int	lseg_crossing(double x, double y, double px, double py);
 static BOX *box_construct(double x1, double x2, double y1, double y2);
-static BOX *box_copy(BOX *box);
 static BOX *box_fill(BOX *result, double x1, double x2, double y1, double y2);
 static bool box_ov(BOX *box1, BOX *box2);
 static double box_ht(BOX *box);
@@ -482,7 +481,7 @@ box_fill(BOX *result, double x1, double x2, double y1, double y2)
 
 /*		box_copy		-		copy a box
  */
-static BOX *
+BOX *
 box_copy(BOX *box)
 {
 	BOX		   *result = (BOX *) palloc(sizeof(BOX));
@@ -5087,6 +5086,35 @@ static double
 circle_ar(CIRCLE *circle)
 {
 	return M_PI * (circle->radius * circle->radius);
+}
+
+/*		circle_bbox		-		returns bounding box of the circle.
+ */
+BOX *
+circle_bbox(CIRCLE *circle)
+{
+	BOX		   *bbox = (BOX *) palloc(sizeof(BOX));
+
+	bbox->high.x = circle->center.x + circle->radius;
+	bbox->low.x = circle->center.x - circle->radius;
+	bbox->high.y = circle->center.y + circle->radius;
+	bbox->low.y = circle->center.y - circle->radius;
+
+	if (isnan(bbox->low.x))
+	{
+		double tmp = bbox->low.x;
+		bbox->low.x = bbox->high.x;
+		bbox->high.x = tmp;
+	}
+
+	if (isnan(bbox->low.y))
+	{
+		double tmp = bbox->low.y;
+		bbox->low.y = bbox->high.y;
+		bbox->high.y = tmp;
+	}
+
+	return bbox;
 }
 
 
